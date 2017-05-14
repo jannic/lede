@@ -724,6 +724,19 @@ static struct image_partition_entry make_soft_version(uint32_t rev) {
 	return entry;
 }
 
+static struct image_partition_entry make_soft_version_archer_c25() {
+	char *version_string = "soft_ver:1.0.0\n";
+	uint32_t ver_len = strlen(version_string);
+	struct image_partition_entry entry = alloc_image_partition("soft-version", ver_len + 2*sizeof(uint32_t));
+
+	uint32_t *len = (uint32_t *)entry.data;
+	*len = htonl(ver_len);
+	*(len+1) = 0;
+	memcpy(len+2, version_string, ver_len);
+
+	return entry;
+}
+
 /** Generates the support-list partition */
 static struct image_partition_entry make_support_list(const struct device_info *info) {
 	size_t len = strlen(info->support_list);
@@ -964,7 +977,11 @@ static void build_image(const char *output,
 	struct image_partition_entry parts[7] = {};
 
 	parts[0] = make_partition_table(info->partitions);
-	parts[1] = make_soft_version(rev);
+	if(strcasecmp(info->id, "ARCHER-C25-V1") == 0 ) {
+		parts[1] = make_soft_version_archer_c25();
+	} else {
+		parts[1] = make_soft_version(rev);
+	}
 	parts[2] = make_support_list(info);
 	parts[3] = read_file("os-image", kernel_image, false);
 	parts[4] = read_file("file-system", rootfs_image, add_jffs2_eof);
